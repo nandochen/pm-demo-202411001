@@ -264,11 +264,16 @@ export class AzleApp extends LitElement {
             box-shadow: 0px 10px 20px rgba(144, 85, 255, 0.3); /* Shadow effect */
             transition: all 0.3s ease; /* Smooth transition */
             letter-spacing: 1px; /* Slight spacing between letters */
+            margin-bottom: 15px;
             }
         td input{
             padding: 5px;
             word-break: break-word;
             word-wrap: break-word;
+        }
+        .devInfo {
+            font-size: small;
+            color: #9c9c9c;
         }`;
     inputSendTONAddress(){
         if (this.getBalanceResponse === "" ){
@@ -297,6 +302,7 @@ export class AzleApp extends LitElement {
                 <td>${unsafeHTML(this.resSendResponse)}</td>
             </tr>
         </table>
+        <p class="devInfo">Dev Wallet: ${devWalletAddress}</p>
         `;
     }
 }
