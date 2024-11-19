@@ -271,9 +271,9 @@ export class AzleApp extends LitElement {
             word-break: break-word;
             word-wrap: break-word;
         }
-        .devInfo {
+        .tonInfo, .devInfo {
             font-size: small;
-            color: #9c9c9c;
+            color: #474747;
         }`;
     inputSendTONAddress(){
         if (this.getBalanceResponse === "" ){
@@ -286,20 +286,20 @@ export class AzleApp extends LitElement {
             <table>
             <tr>
                 <td><button class="button" @click=${this.createWallet}>Create Wallet</button></td>
-                <td>${unsafeHTML(this.createWalletResponse)}</td>
+                <td class="tonInfo">${unsafeHTML(this.createWalletResponse)}</td>
             </tr>
             <tr>
                 <td><button class="button" @click=${this.getBalance}>Get Balance</button></td>
-                <td>${unsafeHTML(this.getBalanceResponse)}</td>
+                <td class="tonInfo">${unsafeHTML(this.getBalanceResponse)}</td>
             </tr>
             <tr>
                 <td><button class="button" @click=${this.sendTON}>Send TON</button></td>
-                <td>${this.inputSendTONAddress()}<br>
-                ${unsafeHTML(this.sendTONResponse)}</td>
+                <td>${this.inputSendTONAddress()}<br />
+                <span class="tonInfo">${unsafeHTML(this.sendTONResponse)}</span></td>
             </tr>
             <tr>
                 <td><button class="button" @click=${this.testResSend}>Backend Get</button></td>
-                <td>${unsafeHTML(this.resSendResponse)}</td>
+                <td class="tonInfo">${unsafeHTML(this.resSendResponse)}</td>
             </tr>
         </table>
         <p class="devInfo">Dev Wallet: ${devWalletAddress}</p>
