@@ -1,5 +1,6 @@
 import { html, LitElement } from 'lit';
 import { unsafeHTML } from 'lit/directives/unsafe-html.js';
+import { live } from 'lit/directives/live.js';
 
 import { customElement, property } from 'lit/decorators.js';
 import { Buffer } from 'buffer';
@@ -41,6 +42,9 @@ export class AzleApp extends LitElement {
 
     @property()
     resSendResponse: string = '';
+
+    @property()
+    sendTONAddress: string = devWalletAddress;
 
     @property()
     resWriteResponse: string = '';
@@ -105,45 +109,61 @@ export class AzleApp extends LitElement {
 
     async sendTON(): Promise<void> {
         this.sendTONResponse = 'Loading...';
-        try { 
-            const TonClient = (await import("@ton/ton")).TonClient;
-            const WalletContractV4 = (await import("@ton/ton")).WalletContractV4;
-            const internal = (await import("@ton/ton")).internal;
-            // Create Client
-            const client = new TonClient({
-              endpoint: endpoint,
-            });
-
-            let wallet = WalletContractV4.create({ workchain, publicKey: sysWallet.keyPair!.publicKey });
-            let contract = client.open(wallet);
-
-            // Create a transfer
-            let seqno: number = await contract.getSeqno();
-
-            const internal_msg = internal({
-                to: devWalletAddress,
-                value: '0.001',
-                init: undefined,
-                body: `Test@${Date.now()}`
-            });
-            
-            let transfer = contract.createTransfer({
-              seqno,
-              secretKey: sysWallet.keyPair!.secretKey,
-              messages: [internal_msg]
-            });
-    
-            await contract.send(transfer);
-
-            // const hash = internal_msg.body.hash().toString('hex');
-            // console.log(internal_msg);
-            
-            const hash = await this.getHash(transfer, wallet.address);
-            
-            // this.sendTONResponse = `Done<br /><a href="${explorer}transaction/${hash}" target="_blank">${hash}</a><br /><a href="${explorer}${devWalletAddress}" target="_blank">Address</a>`;
-            this.sendTONResponse = `Done<br /><a href="${explorer}${devWalletAddress}" target="_blank">Address</a>`;
+        let ok = false;
+        // check address 
+        try {
+            const Address = (await import("@ton/core")).Address;
+            const address = Address.parse(this.sendTONAddress);
+            console.log('Address is valid.');
+            console.log(`${address}`);
+            console.log('Address is valid.');
+            ok = true;
         } catch (e) {
-            this.sendTONResponse = `Error0: ${e}`;
+            this.sendTONResponse = `Error1: ${this.sendTONAddress} not valid. (${e})`;
+        }
+        // break flow on error
+        if (ok) {
+            // trans
+            try { 
+                const TonClient = (await import("@ton/ton")).TonClient;
+                const WalletContractV4 = (await import("@ton/ton")).WalletContractV4;
+                const internal = (await import("@ton/ton")).internal;
+                // Create Client
+                const client = new TonClient({
+                  endpoint: endpoint,
+                });
+    
+                let wallet = WalletContractV4.create({ workchain, publicKey: sysWallet.keyPair!.publicKey });
+                let contract = client.open(wallet);
+    
+                // Create a transfer
+                let seqno: number = await contract.getSeqno();
+    
+                const internal_msg = internal({
+                    to: devWalletAddress,
+                    value: '0.001',
+                    init: undefined,
+                    body: `Test@${Date.now()}`
+                });
+                
+                let transfer = contract.createTransfer({
+                  seqno,
+                  secretKey: sysWallet.keyPair!.secretKey,
+                  messages: [internal_msg]
+                });
+        
+                await contract.send(transfer);
+    
+                // const hash = internal_msg.body.hash().toString('hex');
+                // console.log(internal_msg);
+                
+                const hash = await this.getHash(transfer, wallet.address);
+                
+                // this.sendTONResponse = `Done<br /><a href="${explorer}transaction/${hash}" target="_blank">${hash}</a><br /><a href="${explorer}${devWalletAddress}" target="_blank">Address</a>`;
+                this.sendTONResponse = `Done<br /><a href="${explorer}${devWalletAddress}" target="_blank">Address</a>`;
+            } catch (e) {
+                this.sendTONResponse = `Error0: ${e}`;
+            }
         }
     }
 
@@ -172,6 +192,11 @@ export class AzleApp extends LitElement {
         const responseText = await response.text();
 
         this.resSendResponse = responseText;
+    }
+
+    setSendTONAddress (e:any) {
+        this.sendTONAddress = e.srcElement.value;
+        console.log(e.srcElement.value);
     }
 
     /*
@@ -241,7 +266,7 @@ export class AzleApp extends LitElement {
 
             <br />
             <div>
-                <button @click=${this.sendTON}>Send TON</button>:
+                <input value="${live(this.sendTONAddress)}" style="width: 425px; margin-right: 10px;" @change=${this.setSendTONAddress} /><br /><button @click=${this.sendTON}>Send TON</button>:
                 <p class="rsp">${unsafeHTML(this.sendTONResponse)}</p>
             </div>
 
@@ -250,6 +275,9 @@ export class AzleApp extends LitElement {
                 <button @click=${this.testResSend}>Backend Get</button>:
                 <p class="rsp">${unsafeHTML(this.resSendResponse)}</p>
             </div>
+
+            <br />
+            <p style="color: #ccc;">Dev wallet: ${devWalletAddress}</p>
         `;
     }
 }
