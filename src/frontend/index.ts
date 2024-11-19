@@ -1,4 +1,4 @@
-import { html, LitElement } from 'lit';
+import { html, css, LitElement } from 'lit';
 import { unsafeHTML } from 'lit/directives/unsafe-html.js';
 import { live } from 'lit/directives/live.js';
 
@@ -250,34 +250,53 @@ export class AzleApp extends LitElement {
         this.globalStateResponse = JSON.stringify(responseJson);
     }
     */
-
+    static styles = css`
+        button {
+            min-width: 200px;
+            background: linear-gradient(135deg, #0206f6, #9055ff ); /* Gradient background */
+            color: #ffffff;
+            padding: 15px 30px;
+            font-size: 18px;
+            font-weight: bold;
+            border: none;
+            border-radius: 25px; /* Rounded corners */
+            cursor: pointer;
+            box-shadow: 0px 10px 20px rgba(144, 85, 255, 0.3); /* Shadow effect */
+            transition: all 0.3s ease; /* Smooth transition */
+            letter-spacing: 1px; /* Slight spacing between letters */
+            }
+        td input{
+            padding: 5px;
+            word-break: break-word;
+            word-wrap: break-word;
+        }`;
+    inputSendTONAddress(){
+        if (this.getBalanceResponse === "" ){
+            return  html``;
+        }
+        return html `<input ?hidden value="${live(this.sendTONAddress)}" style="width: 425px; margin-right: 10px;padding: 0.5rem" @change=${this.setSendTONAddress} />`
+    }
     render(): any {
         return html`
-            <div>
-                <button @click=${this.createWallet}>Create Wallet</button>:
-                <p class="rsp">${unsafeHTML(this.createWalletResponse)}</p>
-            </div>
-
-            <br />
-            <div>
-                <button @click=${this.getBalance}>Get Balance</button>:
-                <p class="rsp">${unsafeHTML(this.getBalanceResponse)}</p>
-            </div>
-
-            <br />
-            <div>
-                <input value="${live(this.sendTONAddress)}" style="width: 425px; margin-right: 10px;" @change=${this.setSendTONAddress} /><br /><button @click=${this.sendTON}>Send TON</button>:
-                <p class="rsp">${unsafeHTML(this.sendTONResponse)}</p>
-            </div>
-
-            <br />
-            <div>
-                <button @click=${this.testResSend}>Backend Get</button>:
-                <p class="rsp">${unsafeHTML(this.resSendResponse)}</p>
-            </div>
-
-            <br />
-            <p style="color: #ccc;">Dev wallet: ${devWalletAddress}</p>
+            <table>
+            <tr>
+                <td><button class="button" @click=${this.createWallet}>Create Wallet</button></td>
+                <td>${unsafeHTML(this.createWalletResponse)}</td>
+            </tr>
+            <tr>
+                <td><button class="button" @click=${this.getBalance}>Get Balance</button></td>
+                <td>${unsafeHTML(this.getBalanceResponse)}</td>
+            </tr>
+            <tr>
+                <td><button class="button" @click=${this.sendTON}>Send TON</button></td>
+                <td>${this.inputSendTONAddress()}<br>
+                ${unsafeHTML(this.sendTONResponse)}</td>
+            </tr>
+            <tr>
+                <td><button class="button" @click=${this.testResSend}>Backend Get</button></td>
+                <td>${unsafeHTML(this.resSendResponse)}</td>
+            </tr>
+        </table>
         `;
     }
 }
