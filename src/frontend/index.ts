@@ -140,7 +140,8 @@ export class AzleApp extends LitElement {
             
             const hash = await this.getHash(transfer, wallet.address);
             
-            this.sendTONResponse = `Done<br /><a href="${explorer}transaction/${hash}" target="_blank">${hash}</a><br /><a href="${explorer}${devWalletAddress}" target="_blank">Address</a>`;
+            // this.sendTONResponse = `Done<br /><a href="${explorer}transaction/${hash}" target="_blank">${hash}</a><br /><a href="${explorer}${devWalletAddress}" target="_blank">Address</a>`;
+            this.sendTONResponse = `Done<br /><a href="${explorer}${devWalletAddress}" target="_blank">Address</a>`;
         } catch (e) {
             this.sendTONResponse = `Error0: ${e}`;
         }
