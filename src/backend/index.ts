@@ -14,8 +14,12 @@ writeFileSync('/dist/send-file.txt', 'Does this work too?');
 
 const app = express();
 
+app.get('/backend-get', (req, res) => {
+    res.send(`Response from backend.`);
+});
+
 app.get('/res-send', (req, res) => {
-    res.send('Just testing res.send');
+    res.send(`Call res-send`);
 });
 
 app.get('/res-write', (req, res) => {
