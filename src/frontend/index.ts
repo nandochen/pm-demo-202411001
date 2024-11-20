@@ -6,7 +6,10 @@ import { customElement, property } from 'lit/decorators.js';
 import { Buffer } from 'buffer';
 window.Buffer = Buffer;
 
-import { KeyPair, mnemonicNew, mnemonicToPrivateKey } from "@ton/crypto";
+import { KeyPair, mnemonicNew, mnemonicToPrivateKey, keyPairFromSecretKey, keyPairFromSeed } from "@ton/crypto";
+
+import { JsonnableEd25519KeyIdentity } from "@dfinity/identity/lib/esm/identity/ed25519"
+import getRandomValues from "get-random-values";
 
 const endpoint: string = 'https://testnet.toncenter.com/api/v2/jsonRPC?api_key=12ef1fc91b0d4ee237475fed09efc66af909d83f72376c7c3c42bc9170847ecb';
 const explorer: string = 'https://testnet.tonviewer.com/';
@@ -15,14 +18,18 @@ const devWalletAddress = '0QDQBpCcv361Q785LZ33ky4fowYlgSYLTEIRTPzHVOaAhsVm';
 
 interface sysWallet {
     address: string;
+    addressICP: string;
     mnemonic: string[] | null;
     keyPair: KeyPair | null;
+    keyPairJSON: JsonnableEd25519KeyIdentity | null;
 }
 
 let sysWallet: sysWallet = {
     address: '', 
+    addressICP: '', 
     mnemonic: null,
     keyPair: null,
+    keyPairJSON: null
 }
 
 @customElement('azle-app')
@@ -47,7 +54,7 @@ export class AzleApp extends LitElement {
     sendTONAddress: string = devWalletAddress;
 
     @property()
-    resWriteResponse: string = '';
+    createWalletCFResponse: string = '';
 
     @property()
     fileStreamResponse: string = '';
@@ -55,6 +62,66 @@ export class AzleApp extends LitElement {
     @property()
     globalStateResponse: string = JSON.stringify({});
 
+
+    /**
+     * ICP Chain Fusion 
+     */
+    async createWalletCF(): Promise<void> {
+        this.createWalletCFResponse = 'Loading...';
+        try {
+            const identity = (await import("@dfinity/identity"));
+            const WalletContractV4 = (await import("@ton/ton")).WalletContractV4;
+            const ton = (await import("@ton/ton"));
+            // ICP ID
+            const entropy = getRandomValues(new Uint8Array(32));
+            const did = identity.Ed25519KeyIdentity.generate(entropy);
+            // keyPair 
+            // const _keyPair = did.getKeyPair();
+            // address 
+            const _addrICP = did.getPrincipal().toString();            
+            let [pubKey, privKey] = did.toJSON();
+            // hack 1
+            pubKey = this.toHexString(did.getPublicKey().toRaw());
+            /*
+            console.log(did.getPublicKey().toRaw());
+            console.log(pubKey);
+            pubKey = pubKey.slice(0, 64);
+            console.log(pubKey);
+            console.log(privKey);
+            */
+            const _publicKey = Buffer.from(pubKey, "hex");
+            const privateKeya = Buffer.from(privKey, "hex");
+            console.log(_publicKey);
+            console.log(privateKeya);
+            /*
+            const kp = Buffer.from(privKey, "hex");
+            const keyIdObject = identity.Ed25519KeyIdentity.fromSecretKey(kp);
+            let [pubKey2, privKey2] = keyIdObject.toJSON();
+            console.log(kp);
+            console.log(did);
+            console.log(keyIdObject);
+            console.log(pubKey2);
+            console.log(privKey2);
+            */
+
+            // use public key to create TON wallet
+            let wallet = WalletContractV4.create({ workchain, publicKey: _publicKey });
+            const address = wallet.address.toString({ testOnly: true });
+            // set sys wallet
+            sysWallet.address = address;
+            sysWallet.addressICP = _addrICP;
+            sysWallet.keyPairJSON = [pubKey, privKey];
+            // out 
+            this.createWalletCFResponse = `TON Address: ${address}<br />ICP Address: ${_addrICP}<br />
+                                           Public Key: ${pubKey}<br />Secret Key: ${privKey}`;
+        } catch (e) {
+            this.createWalletCFResponse = `Error0: ${e}`;
+        }
+    }
+
+    /**
+     * TON 
+     */
     async createWallet(): Promise<void> {
         this.createWalletResponse = 'Loading...';
         try { 
@@ -73,13 +140,18 @@ export class AzleApp extends LitElement {
             let wallet = WalletContractV4.create({ workchain, publicKey: keyPair.publicKey });
             const address = wallet.address.toString({ testOnly: true });
 
+            console.log(keyPair.secretKey);
+
             // set sys wallet
             sysWallet.address = address;
             sysWallet.mnemonic = mnemonics;
             sysWallet.keyPair = keyPair;
 
             // rtn 
-            this.createWalletResponse = `<br />Address: ${address}<br />Mnemonic: ${mnemonics.toString()}`;
+            this.createWalletResponse = `Address: ${address}<br />
+                                        Public Key: ${keyPair.publicKey.toString('hex')}<br />
+                                        Private Key: ${keyPair.secretKey.toString('hex')}<br />
+                                        Mnemonic: ${mnemonics.toString()}`;
         } catch (e) {
             this.createWalletResponse = `Error0: ${e}`;
         }
@@ -95,7 +167,8 @@ export class AzleApp extends LitElement {
               endpoint: endpoint,
             });
 
-            let wallet = WalletContractV4.create({ workchain, publicKey: sysWallet.keyPair!.publicKey });
+            let _publicKey = sysWallet.keyPair ? sysWallet.keyPair!.publicKey : Buffer.from(sysWallet.keyPairJSON![0], "hex"); 
+            let wallet = WalletContractV4.create({ workchain, publicKey: _publicKey });
             let contract = client.open(wallet);
             
             // Get balance
@@ -132,8 +205,14 @@ export class AzleApp extends LitElement {
                 const client = new TonClient({
                   endpoint: endpoint,
                 });
-    
-                let wallet = WalletContractV4.create({ workchain, publicKey: sysWallet.keyPair!.publicKey });
+                // hack 2 -> sim TON secret key 
+                let _combineKey = sysWallet.keyPairJSON![1] + sysWallet.keyPairJSON![0];
+                let _publicKey = sysWallet.keyPair ? sysWallet.keyPair!.publicKey : Buffer.from(sysWallet.keyPairJSON![0], "hex"); 
+                let _secretKey = sysWallet.keyPair ? sysWallet.keyPair!.secretKey : Buffer.from(_combineKey, "hex"); 
+
+                console.log(_secretKey);
+
+                let wallet = WalletContractV4.create({ workchain, publicKey: _publicKey });
                 let contract = client.open(wallet);
     
                 // Create a transfer
@@ -148,7 +227,7 @@ export class AzleApp extends LitElement {
                 
                 let transfer = contract.createTransfer({
                   seqno,
-                  secretKey: sysWallet.keyPair!.secretKey,
+                  secretKey: _secretKey,
                   messages: [internal_msg]
                 });
         
@@ -198,6 +277,12 @@ export class AzleApp extends LitElement {
         this.sendTONAddress = e.srcElement.value;
         console.log(e.srcElement.value);
     }
+
+    toHexString(byteArray:any) {
+        return Array.from(byteArray, function(byte:any) {
+          return ('0' + (byte & 0xFF).toString(16)).slice(-2);
+        }).join('')
+      }
 
     /*
     async testResWrite(): Promise<void> {
@@ -285,7 +370,11 @@ export class AzleApp extends LitElement {
         return html`
             <table>
             <tr>
-                <td><button class="button" @click=${this.createWallet}>Create Wallet</button></td>
+                <td><button class="button" @click=${this.createWalletCF}>Create Wallet - Chain Fusion</button></td>
+                <td class="tonInfo">${unsafeHTML(this.createWalletCFResponse)}</td>
+            </tr>
+            <tr>
+                <td><button class="button" @click=${this.createWallet}>Create Wallet - TON</button></td>
                 <td class="tonInfo">${unsafeHTML(this.createWalletResponse)}</td>
             </tr>
             <tr>
