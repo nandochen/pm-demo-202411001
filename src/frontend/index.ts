@@ -6,7 +6,10 @@ import { customElement, property } from 'lit/decorators.js';
 import { Buffer } from 'buffer';
 window.Buffer = Buffer;
 
-import { KeyPair, mnemonicNew, mnemonicToPrivateKey } from "@ton/crypto";
+import { KeyPair, mnemonicNew, mnemonicToPrivateKey, keyPairFromSecretKey, keyPairFromSeed } from "@ton/crypto";
+
+import { JsonnableEd25519KeyIdentity } from "@dfinity/identity/lib/esm/identity/ed25519"
+import getRandomValues from "get-random-values";
 
 const endpoint: string = 'https://testnet.toncenter.com/api/v2/jsonRPC?api_key=12ef1fc91b0d4ee237475fed09efc66af909d83f72376c7c3c42bc9170847ecb';
 const explorer: string = 'https://testnet.tonviewer.com/';
@@ -15,14 +18,18 @@ const devWalletAddress = '0QDQBpCcv361Q785LZ33ky4fowYlgSYLTEIRTPzHVOaAhsVm';
 
 interface sysWallet {
     address: string;
+    addressICP: string;
     mnemonic: string[] | null;
     keyPair: KeyPair | null;
+    keyPairJSON: JsonnableEd25519KeyIdentity | null;
 }
 
 let sysWallet: sysWallet = {
     address: '', 
+    addressICP: '', 
     mnemonic: null,
     keyPair: null,
+    keyPairJSON: null
 }
 
 @customElement('azle-app')
@@ -32,22 +39,25 @@ export class AzleApp extends LitElement {
     }.localhost:4943`;
 
     @property()
-    createWalletResponse: string = '';
+    createWalletResponse: string = '...';
 
     @property()
-    getBalanceResponse: string = '';
+    getBalanceResponse: string = '...';
 
     @property()
-    sendTONResponse: string = '';
+    sendTONResponse: string = '...';
 
     @property()
-    resSendResponse: string = '';
+    resSendResponse: string = '...';
+
+    @property()
+    getTransactionsResponse: string = '...';
 
     @property()
     sendTONAddress: string = devWalletAddress;
 
     @property()
-    resWriteResponse: string = '';
+    createWalletCFResponse: string = '...';
 
     @property()
     fileStreamResponse: string = '';
@@ -55,6 +65,66 @@ export class AzleApp extends LitElement {
     @property()
     globalStateResponse: string = JSON.stringify({});
 
+
+    /**
+     * ICP Chain Fusion - identity 
+     */
+    async createWalletCF(): Promise<void> {
+        this.createWalletCFResponse = 'Loading...';
+        try {
+            const identity = (await import("@dfinity/identity"));
+            const WalletContractV4 = (await import("@ton/ton")).WalletContractV4;
+            const ton = (await import("@ton/ton"));
+            // ICP ID
+            const entropy = getRandomValues(new Uint8Array(32));
+            const did = identity.Ed25519KeyIdentity.generate(entropy);
+            // keyPair 
+            // const _keyPair = did.getKeyPair();
+            // address 
+            const _addrICP = did.getPrincipal().toString();            
+            let [pubKey, privKey] = did.toJSON();
+            // hack 1 -> actual pk is here
+            pubKey = this.toHexString(did.getPublicKey().toRaw());
+            const _publicKey = Buffer.from(pubKey, "hex");
+            /*
+            console.log(did.getPublicKey().toRaw());
+            console.log(pubKey);
+            pubKey = pubKey.slice(0, 64);
+            console.log(pubKey);
+            console.log(privKey);
+            */
+            // const privateKeya = Buffer.from(privKey, "hex");
+            // console.log(_publicKey);
+            // console.log(privateKeya);
+            /*
+            const kp = Buffer.from(privKey, "hex");
+            const keyIdObject = identity.Ed25519KeyIdentity.fromSecretKey(kp);
+            let [pubKey2, privKey2] = keyIdObject.toJSON();
+            console.log(kp);
+            console.log(did);
+            console.log(keyIdObject);
+            console.log(pubKey2);
+            console.log(privKey2);
+            */
+
+            // use public key to create TON wallet
+            let wallet = WalletContractV4.create({ workchain, publicKey: _publicKey });
+            const address = wallet.address.toString({ testOnly: false, bounceable: false });
+            // set sys wallet
+            sysWallet.address = address;
+            sysWallet.addressICP = _addrICP;
+            sysWallet.keyPairJSON = [pubKey, privKey];
+            // out 
+            this.createWalletCFResponse = `TON Address: ${address}<br />ICP Address: ${_addrICP}<br />
+                                           Public Key: ${pubKey}<br />Secret Key: ${privKey}`;
+        } catch (e) {
+            this.createWalletCFResponse = `Error0: ${e}`;
+        }
+    }
+
+    /**
+     * TON
+     */
     async createWallet(): Promise<void> {
         this.createWalletResponse = 'Loading...';
         try { 
@@ -73,21 +143,50 @@ export class AzleApp extends LitElement {
             let wallet = WalletContractV4.create({ workchain, publicKey: keyPair.publicKey });
             const address = wallet.address.toString({ testOnly: true });
 
+            console.log(keyPair.secretKey);
+
             // set sys wallet
             sysWallet.address = address;
             sysWallet.mnemonic = mnemonics;
             sysWallet.keyPair = keyPair;
 
             // rtn 
-            this.createWalletResponse = `<br />Address: ${address}<br />Mnemonic: ${mnemonics.toString()}`;
+            this.createWalletResponse = `Address: ${address}<br />
+                                        Public Key: ${keyPair.publicKey.toString('hex')}<br />
+                                        Private Key: ${keyPair.secretKey.toString('hex')}<br />
+                                        Mnemonic: ${mnemonics.toString()}`;
         } catch (e) {
             this.createWalletResponse = `Error0: ${e}`;
         }
     }
 
+    /**
+     * ICP Chain Fusion - HTTPS outcalls
+     */
     async getBalance(): Promise<void> {
         this.getBalanceResponse = 'Loading...';
         try { 
+            // https outcall 
+            const response = await fetch(
+                    `${this.canisterOrigin}/getBalance`, 
+                    { 
+                        method: 'POST',                    
+                        headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ address: sysWallet.address})
+                    });
+            const responseText = await response.json();
+            try {
+                let balance = parseFloat(BigInt(responseText.result).toString()) / (10 ** 9);
+                console.log(responseText)
+                this.getBalanceResponse = `${balance} TON`;
+            } catch (e) {
+                this.getBalanceResponse = `Error: ${e}`;
+            }
+            /*
+            // ton 
             const TonClient = (await import("@ton/ton")).TonClient;
             const WalletContractV4 = (await import("@ton/ton")).WalletContractV4;
             // Create Client
@@ -95,18 +194,51 @@ export class AzleApp extends LitElement {
               endpoint: endpoint,
             });
 
-            let wallet = WalletContractV4.create({ workchain, publicKey: sysWallet.keyPair!.publicKey });
+            let _publicKey = sysWallet.keyPair ? sysWallet.keyPair!.publicKey : Buffer.from(sysWallet.keyPairJSON![0], "hex"); 
+            let wallet = WalletContractV4.create({ workchain, publicKey: _publicKey });
             let contract = client.open(wallet);
             
             // Get balance
             let balance: bigint = await contract.getBalance();
     
             this.getBalanceResponse = `${parseFloat(BigInt(balance).toString()) / (10 ** 9)} TON`;
+            */
         } catch (e) {
             this.getBalanceResponse = `Error0: ${e}`;
         }
     }
 
+    /**
+     * ICP Chain Fusion - HTTPS outcalls
+     */
+    async getTransactions(): Promise<void> {
+        this.getTransactionsResponse = 'Loading...';
+        try { 
+            // https outcall 
+            const response = await fetch(
+                    `${this.canisterOrigin}/getTransactions`, 
+                    { 
+                        method: 'POST',                    
+                        headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ address: sysWallet.address})
+                    });
+            try {
+                const responseText = await response.text();
+                this.getTransactionsResponse = `${responseText}`;
+            } catch (e) {
+                this.getTransactionsResponse = `Error: ${e}`;
+            }
+        } catch (e) {
+            this.getTransactionsResponse = `Error0: ${e}`;
+        }
+    }
+
+    /**
+     * ICP Chain Fusion - identity 
+     */
     async sendTON(): Promise<void> {
         this.sendTONResponse = 'Loading...';
         let ok = false;
@@ -132,8 +264,14 @@ export class AzleApp extends LitElement {
                 const client = new TonClient({
                   endpoint: endpoint,
                 });
-    
-                let wallet = WalletContractV4.create({ workchain, publicKey: sysWallet.keyPair!.publicKey });
+                // hack 2 -> sim TON secret key 
+                let _combineKey = sysWallet.keyPairJSON![1] + sysWallet.keyPairJSON![0];
+                let _publicKey = sysWallet.keyPair ? sysWallet.keyPair!.publicKey : Buffer.from(sysWallet.keyPairJSON![0], "hex"); 
+                let _secretKey = sysWallet.keyPair ? sysWallet.keyPair!.secretKey : Buffer.from(_combineKey, "hex"); 
+
+                console.log(_secretKey);
+
+                let wallet = WalletContractV4.create({ workchain, publicKey: _publicKey });
                 let contract = client.open(wallet);
     
                 // Create a transfer
@@ -148,7 +286,7 @@ export class AzleApp extends LitElement {
                 
                 let transfer = contract.createTransfer({
                   seqno,
-                  secretKey: sysWallet.keyPair!.secretKey,
+                  secretKey: _secretKey,
                   messages: [internal_msg]
                 });
         
@@ -160,7 +298,7 @@ export class AzleApp extends LitElement {
                 const hash = await this.getHash(transfer, wallet.address);
                 
                 // this.sendTONResponse = `Done<br /><a href="${explorer}transaction/${hash}" target="_blank">${hash}</a><br /><a href="${explorer}${devWalletAddress}" target="_blank">Address</a>`;
-                this.sendTONResponse = `Done<br /><a href="${explorer}${devWalletAddress}" target="_blank">Address</a>`;
+                this.sendTONResponse = `Done. <a href="${explorer}${devWalletAddress}" target="_blank">Explorer 🗗</a>`;
             } catch (e) {
                 this.sendTONResponse = `Error0: ${e}`;
             }
@@ -199,110 +337,88 @@ export class AzleApp extends LitElement {
         console.log(e.srcElement.value);
     }
 
-    /*
-    async testResWrite(): Promise<void> {
-        this.resWriteResponse = 'Loading...';
+    toHexString(byteArray:any) {
+        return Array.from(byteArray, function(byte:any) {
+          return ('0' + (byte & 0xFF).toString(16)).slice(-2);
+        }).join('')
+      }
 
-        const response = await fetch(`${this.canisterOrigin}/res-write`);
-        const responseText = await response.text();
-
-        this.resWriteResponse = responseText;
-    }
-
-    async testFileStream(): Promise<void> {
-        this.fileStreamResponse = 'Loading...';
-
-        const response = await fetch(`${this.canisterOrigin}/file-stream`);
-        const responseText = await response.text();
-
-        this.fileStreamResponse = responseText;
-    }
-
-    async testGlobalState(): Promise<void> {
-        this.globalStateResponse = 'Loading...';
-
-        const response = await fetch(
-            `${this.canisterOrigin}/global-state/post`,
-            {
-                method: 'POST',
-                headers: [['Content-Type', 'application/json']],
-                body: JSON.stringify({
-                    hello: 'world'
-                })
-            }
-        );
-        const responseJson = await response.json();
-
-        this.globalStateResponse = JSON.stringify(responseJson);
-    }
-
-    async deleteGlobalState(): Promise<void> {
-        this.globalStateResponse = 'Loading...';
-
-        const response = await fetch(
-            `${this.canisterOrigin}/global-state/delete`,
-            {
-                method: 'DELETE'
-            }
-        );
-        const responseJson = await response.json();
-
-        this.globalStateResponse = JSON.stringify(responseJson);
-    }
-    */
-    static styles = css`
-        button {
-            min-width: 200px;
-            background: linear-gradient(135deg, #0206f6, #9055ff ); /* Gradient background */
-            color: #ffffff;
-            padding: 15px 30px;
-            font-size: 18px;
-            font-weight: bold;
-            border: none;
-            border-radius: 25px; /* Rounded corners */
-            cursor: pointer;
-            box-shadow: 0px 10px 20px rgba(144, 85, 255, 0.3); /* Shadow effect */
-            transition: all 0.3s ease; /* Smooth transition */
-            letter-spacing: 1px; /* Slight spacing between letters */
-            margin-bottom: 15px;
-            }
-        td input{
-            padding: 5px;
-            word-break: break-word;
-            word-wrap: break-word;
-        }
-        .tonInfo, .devInfo {
-            font-size: small;
-            color: #474747;
-        }`;
     inputSendTONAddress(){
-        if (this.getBalanceResponse === "" ){
-            return  html``;
-        }
-        return html `<input ?hidden value="${live(this.sendTONAddress)}" style="width: 425px; margin-right: 10px;padding: 0.5rem" @change=${this.setSendTONAddress} />`
+        return html `<input type="text" class="form-control" value="${live(this.sendTONAddress)}" @change=${this.setSendTONAddress} />`
     }
+
+    // inject css file 
+    static get styles() {
+        const globalStyle = Array.from(document.styleSheets).map(x => {
+                                const sheet = new CSSStyleSheet();
+                                const css = Array.from(x.cssRules).map(rule => rule.cssText).join('\n');
+                                sheet.replaceSync(css);
+                                return sheet;
+                            });
+        return [
+            globalStyle,
+            css``
+        ];
+    }
+
     render(): any {
         return html`
-            <table>
-            <tr>
-                <td><button class="button" @click=${this.createWallet}>Create Wallet</button></td>
-                <td class="tonInfo">${unsafeHTML(this.createWalletResponse)}</td>
-            </tr>
-            <tr>
-                <td><button class="button" @click=${this.getBalance}>Get Balance</button></td>
-                <td class="tonInfo">${unsafeHTML(this.getBalanceResponse)}</td>
-            </tr>
-            <tr>
-                <td><button class="button" @click=${this.sendTON}>Send TON</button></td>
-                <td>${this.inputSendTONAddress()}<br />
-                <span class="tonInfo">${unsafeHTML(this.sendTONResponse)}</span></td>
-            </tr>
-            <tr>
-                <td><button class="button" @click=${this.testResSend}>Backend Get</button></td>
-                <td class="tonInfo">${unsafeHTML(this.resSendResponse)}</td>
-            </tr>
-        </table>
-        <p class="devInfo">Dev Wallet: ${devWalletAddress}</p>
+        <div class="card mb-3">
+            <div class="card-header">
+                <a href="#" class="btn btn-sm btn-primary" @click=${this.createWalletCF}>Create Wallet</a>
+            </div>
+            <div class="card-body">
+                <p class="card-text small">@difinity/identity.Ed25519KeyIdentity</p>
+                <p class="card-text text-muted small">${unsafeHTML(this.createWalletCFResponse)}</p>
+            </div>
+        </div>
+        <div class="card mb-3">
+            <div class="card-header">
+                <a href="#" class="btn btn-sm btn-primary" @click=${this.getBalance}>Get Balance</a>
+            </div>
+            <div class="card-body">
+                <p class="card-text small">HTTPS Outcalls <-> TON RPC</p>
+                <p class="card-text text-muted small">${unsafeHTML(this.getBalanceResponse)}</p>
+            </div>
+        </div>
+        <div class="card mb-3">
+            <div class="card-header">
+                <a href="#" class="btn btn-sm btn-primary" @click=${this.sendTON}>Send TON</a>
+            </div>
+            <div class="card-body">
+                <p class="card-text small">${this.inputSendTONAddress()}</p>
+                <p class="card-text text-muted small">${unsafeHTML(this.sendTONResponse)}</p>
+            </div>
+        </div>
+        <div class="card mb-3">
+            <div class="card-header">
+                <a href="#" class="btn btn-sm btn-primary" @click=${this.getTransactions}>Get Transactions</a>
+            </div>
+            <div class="card-body">
+                <p class="card-text small">HTTPS Outcalls <-> TON RPC</p>
+                <p class="card-text text-muted small">${unsafeHTML(this.getTransactionsResponse)}</p>
+            </div>
+        </div>
+        <!--
+        <div class="card mb-3">
+            <div class="card-header">
+                <a href="#" class="btn btn-sm btn-primary" @click=${this.testResSend}>Call Backend</a>
+            </div>
+            <div class="card-body">
+                <p class="card-text small">Interact with Backend canister.</p>
+                <p class="card-text text-muted small">${unsafeHTML(this.resSendResponse)}</p>
+            </div>
+        </div>
+        <div class="card mb-3">
+            <div class="card-header">Create Wallet - TON</div>
+            <div class="card-body">
+                <p class="card-text">@ton/ton</p>
+                <a href="#" class="btn btn-light" @click=${this.createWallet}>Create Wallet</a>
+            </div>
+            <div class="card-footer text-muted small">${unsafeHTML(this.createWalletResponse)}</div>
+        </div>
+        -->
+        <p class="text-muted">Dev Wallet: ${devWalletAddress}</p>
         `;
     }
 }
