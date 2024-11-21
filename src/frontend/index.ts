@@ -67,7 +67,7 @@ export class AzleApp extends LitElement {
 
 
     /**
-     * ICP Chain Fusion 
+     * ICP Chain Fusion - identity 
      */
     async createWalletCF(): Promise<void> {
         this.createWalletCFResponse = 'Loading...';
@@ -109,7 +109,7 @@ export class AzleApp extends LitElement {
 
             // use public key to create TON wallet
             let wallet = WalletContractV4.create({ workchain, publicKey: _publicKey });
-            const address = wallet.address.toString({ testOnly: true });
+            const address = wallet.address.toString({ testOnly: false, bounceable: false });
             // set sys wallet
             sysWallet.address = address;
             sysWallet.addressICP = _addrICP;
@@ -123,7 +123,7 @@ export class AzleApp extends LitElement {
     }
 
     /**
-     * TON 
+     * TON
      */
     async createWallet(): Promise<void> {
         this.createWalletResponse = 'Loading...';
@@ -160,6 +160,9 @@ export class AzleApp extends LitElement {
         }
     }
 
+    /**
+     * ICP Chain Fusion - HTTPS outcalls
+     */
     async getBalance(): Promise<void> {
         this.getBalanceResponse = 'Loading...';
         try { 
@@ -205,6 +208,9 @@ export class AzleApp extends LitElement {
         }
     }
 
+    /**
+     * ICP Chain Fusion - HTTPS outcalls
+     */
     async getTransactions(): Promise<void> {
         this.getTransactionsResponse = 'Loading...';
         try { 
@@ -219,8 +225,8 @@ export class AzleApp extends LitElement {
                         },
                         body: JSON.stringify({ address: sysWallet.address})
                     });
-            const responseText = await response.text();
             try {
+                const responseText = await response.text();
                 this.getTransactionsResponse = `${responseText}`;
             } catch (e) {
                 this.getTransactionsResponse = `Error: ${e}`;
@@ -230,6 +236,9 @@ export class AzleApp extends LitElement {
         }
     }
 
+    /**
+     * ICP Chain Fusion - identity 
+     */
     async sendTON(): Promise<void> {
         this.sendTONResponse = 'Loading...';
         let ok = false;
@@ -386,7 +395,7 @@ export class AzleApp extends LitElement {
                 <a href="#" class="btn btn-sm btn-primary" @click=${this.getTransactions}>Get Transactions</a>
             </div>
             <div class="card-body">
-                <p class="card-text small">HTTPS Outcall <-> TON RPC</p>
+                <p class="card-text small">HTTPS Outcalls <-> TON RPC</p>
                 <p class="card-text text-muted small">${unsafeHTML(this.getTransactionsResponse)}</p>
             </div>
         </div>
