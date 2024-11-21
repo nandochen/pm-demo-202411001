@@ -1,21 +1,41 @@
-import express, { Request, Response } from 'express';
-import { createReadStream, writeFileSync } from 'fs';
+import express from 'express';
 
-let globalState = {};
-
-writeFileSync(
-    '/dist/test.html',
-    `<!DOCTYPE html><html><body>HTML from the filesystem</body></html>`
-);
-
-writeFileSync('/dist/test.txt', 'I have written some text to this file');
-
-writeFileSync('/dist/send-file.txt', 'Does this work too?');
+const endpoint: string = 'https://testnet.toncenter.com/api/v2/';
+const key: string = '&api_key=12ef1fc91b0d4ee237475fed09efc66af909d83f72376c7c3c42bc9170847ecb';
 
 const app = express();
+app.use(express.json());
 
 app.get('/backend-get', (req, res) => {
     res.send(`Response from backend.`);
+});
+
+app.post('/getBalance', (req, res) => { 
+    let address = req.body.address;
+    const url = endpoint + 'getAddressBalance?address=' + address + key;
+    try {
+        fetch(url).then(res0 => {
+            res0.text().then(t => {
+                res.send(t);
+            });
+        });
+    } catch (e) {
+        res.send(`Error: ${e}<br />Url: ${url}`);
+    }
+});
+
+app.post('/getTransactions', (req, res) => { 
+    let address = req.body.address;
+    const url = endpoint + 'getTransactions?address=' + address + key;
+    try {
+        fetch(url).then(res0 => {
+            res0.text().then(t => {
+                res.send(t);
+            });
+        });
+    } catch (e) {
+        res.send(`Error: ${e}<br />Url: ${url}`);
+    }
 });
 
 app.get('/res-send', (req, res) => {
@@ -27,54 +47,10 @@ app.get('/res-write', (req, res) => {
     res.end();
 });
 
-app.get('/file-stream', (req, res) => {
-    const fileStream = createReadStream('/dist/test.txt');
-
-    fileStream.pipe(res);
-});
-
-app.get('/global-state', (req, res) => {
-    res.json(globalState);
-});
-
 app.get('/500', (req, res) => {
     res.sendStatus(500);
 });
 
-app.get('/send-file', (req, res) => {
-    res.sendFile('/dist/send-file.txt');
-});
-
-app.use(express.json());
-
-app.post('/global-state/post', changeGlobalState);
-app.put('/global-state/put', changeGlobalState);
-app.patch('/global-state/patch', changeGlobalState);
-
-app.delete('/global-state/delete', (req, res) => {
-    globalState = {};
-
-    res.json(globalState);
-});
-
-const router = express.Router();
-
-router.get('/user/:id', (req, res) => {
-    res.send(req.params.id);
-});
-
-router.get('/post', (req, res) => {
-    res.send(req.query.id);
-});
-
-app.use('/router', router);
-
 app.use(express.static('/dist'));
 
 app.listen();
-
-function changeGlobalState(req: Request, res: Response): void {
-    globalState = req.body;
-
-    res.json(globalState);
-}

@@ -39,22 +39,25 @@ export class AzleApp extends LitElement {
     }.localhost:4943`;
 
     @property()
-    createWalletResponse: string = '';
+    createWalletResponse: string = '...';
 
     @property()
-    getBalanceResponse: string = '';
+    getBalanceResponse: string = '...';
 
     @property()
-    sendTONResponse: string = '';
+    sendTONResponse: string = '...';
 
     @property()
-    resSendResponse: string = '';
+    resSendResponse: string = '...';
+
+    @property()
+    getTransactionsResponse: string = '...';
 
     @property()
     sendTONAddress: string = devWalletAddress;
 
     @property()
-    createWalletCFResponse: string = '';
+    createWalletCFResponse: string = '...';
 
     @property()
     fileStreamResponse: string = '';
@@ -80,8 +83,9 @@ export class AzleApp extends LitElement {
             // address 
             const _addrICP = did.getPrincipal().toString();            
             let [pubKey, privKey] = did.toJSON();
-            // hack 1
+            // hack 1 -> actual pk is here
             pubKey = this.toHexString(did.getPublicKey().toRaw());
+            const _publicKey = Buffer.from(pubKey, "hex");
             /*
             console.log(did.getPublicKey().toRaw());
             console.log(pubKey);
@@ -89,10 +93,9 @@ export class AzleApp extends LitElement {
             console.log(pubKey);
             console.log(privKey);
             */
-            const _publicKey = Buffer.from(pubKey, "hex");
-            const privateKeya = Buffer.from(privKey, "hex");
-            console.log(_publicKey);
-            console.log(privateKeya);
+            // const privateKeya = Buffer.from(privKey, "hex");
+            // console.log(_publicKey);
+            // console.log(privateKeya);
             /*
             const kp = Buffer.from(privKey, "hex");
             const keyIdObject = identity.Ed25519KeyIdentity.fromSecretKey(kp);
@@ -160,6 +163,27 @@ export class AzleApp extends LitElement {
     async getBalance(): Promise<void> {
         this.getBalanceResponse = 'Loading...';
         try { 
+            // https outcall 
+            const response = await fetch(
+                    `${this.canisterOrigin}/getBalance`, 
+                    { 
+                        method: 'POST',                    
+                        headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ address: sysWallet.address})
+                    });
+            const responseText = await response.json();
+            try {
+                let balance = parseFloat(BigInt(responseText.result).toString()) / (10 ** 9);
+                console.log(responseText)
+                this.getBalanceResponse = `${balance} TON`;
+            } catch (e) {
+                this.getBalanceResponse = `Error: ${e}`;
+            }
+            /*
+            // ton 
             const TonClient = (await import("@ton/ton")).TonClient;
             const WalletContractV4 = (await import("@ton/ton")).WalletContractV4;
             // Create Client
@@ -175,8 +199,34 @@ export class AzleApp extends LitElement {
             let balance: bigint = await contract.getBalance();
     
             this.getBalanceResponse = `${parseFloat(BigInt(balance).toString()) / (10 ** 9)} TON`;
+            */
         } catch (e) {
             this.getBalanceResponse = `Error0: ${e}`;
+        }
+    }
+
+    async getTransactions(): Promise<void> {
+        this.getTransactionsResponse = 'Loading...';
+        try { 
+            // https outcall 
+            const response = await fetch(
+                    `${this.canisterOrigin}/getTransactions`, 
+                    { 
+                        method: 'POST',                    
+                        headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ address: sysWallet.address})
+                    });
+            const responseText = await response.text();
+            try {
+                this.getTransactionsResponse = `${responseText}`;
+            } catch (e) {
+                this.getTransactionsResponse = `Error: ${e}`;
+            }
+        } catch (e) {
+            this.getTransactionsResponse = `Error0: ${e}`;
         }
     }
 
@@ -239,7 +289,7 @@ export class AzleApp extends LitElement {
                 const hash = await this.getHash(transfer, wallet.address);
                 
                 // this.sendTONResponse = `Done<br /><a href="${explorer}transaction/${hash}" target="_blank">${hash}</a><br /><a href="${explorer}${devWalletAddress}" target="_blank">Address</a>`;
-                this.sendTONResponse = `Done<br /><a href="${explorer}${devWalletAddress}" target="_blank">Address</a>`;
+                this.sendTONResponse = `Done. <a href="${explorer}${devWalletAddress}" target="_blank">Explorer 🗗</a>`;
             } catch (e) {
                 this.sendTONResponse = `Error0: ${e}`;
             }
@@ -284,114 +334,82 @@ export class AzleApp extends LitElement {
         }).join('')
       }
 
-    /*
-    async testResWrite(): Promise<void> {
-        this.resWriteResponse = 'Loading...';
-
-        const response = await fetch(`${this.canisterOrigin}/res-write`);
-        const responseText = await response.text();
-
-        this.resWriteResponse = responseText;
-    }
-
-    async testFileStream(): Promise<void> {
-        this.fileStreamResponse = 'Loading...';
-
-        const response = await fetch(`${this.canisterOrigin}/file-stream`);
-        const responseText = await response.text();
-
-        this.fileStreamResponse = responseText;
-    }
-
-    async testGlobalState(): Promise<void> {
-        this.globalStateResponse = 'Loading...';
-
-        const response = await fetch(
-            `${this.canisterOrigin}/global-state/post`,
-            {
-                method: 'POST',
-                headers: [['Content-Type', 'application/json']],
-                body: JSON.stringify({
-                    hello: 'world'
-                })
-            }
-        );
-        const responseJson = await response.json();
-
-        this.globalStateResponse = JSON.stringify(responseJson);
-    }
-
-    async deleteGlobalState(): Promise<void> {
-        this.globalStateResponse = 'Loading...';
-
-        const response = await fetch(
-            `${this.canisterOrigin}/global-state/delete`,
-            {
-                method: 'DELETE'
-            }
-        );
-        const responseJson = await response.json();
-
-        this.globalStateResponse = JSON.stringify(responseJson);
-    }
-    */
-    static styles = css`
-        button {
-            min-width: 200px;
-            background: linear-gradient(135deg, #0206f6, #9055ff ); /* Gradient background */
-            color: #ffffff;
-            padding: 15px 30px;
-            font-size: 18px;
-            font-weight: bold;
-            border: none;
-            border-radius: 25px; /* Rounded corners */
-            cursor: pointer;
-            box-shadow: 0px 10px 20px rgba(144, 85, 255, 0.3); /* Shadow effect */
-            transition: all 0.3s ease; /* Smooth transition */
-            letter-spacing: 1px; /* Slight spacing between letters */
-            margin-bottom: 15px;
-            }
-        td input{
-            padding: 5px;
-            word-break: break-word;
-            word-wrap: break-word;
-        }
-        .tonInfo, .devInfo {
-            font-size: small;
-            color: #474747;
-        }`;
     inputSendTONAddress(){
-        if (this.getBalanceResponse === "" ){
-            return  html``;
-        }
-        return html `<input ?hidden value="${live(this.sendTONAddress)}" style="width: 425px; margin-right: 10px;padding: 0.5rem" @change=${this.setSendTONAddress} />`
+        return html `<input type="text" class="form-control" value="${live(this.sendTONAddress)}" @change=${this.setSendTONAddress} />`
     }
+
+    // inject css file 
+    static get styles() {
+        const globalStyle = Array.from(document.styleSheets).map(x => {
+                                const sheet = new CSSStyleSheet();
+                                const css = Array.from(x.cssRules).map(rule => rule.cssText).join('\n');
+                                sheet.replaceSync(css);
+                                return sheet;
+                            });
+        return [
+            globalStyle,
+            css``
+        ];
+    }
+
     render(): any {
         return html`
-            <table>
-            <tr>
-                <td><button class="button" @click=${this.createWalletCF}>Create Wallet - Chain Fusion</button></td>
-                <td class="tonInfo">${unsafeHTML(this.createWalletCFResponse)}</td>
-            </tr>
-            <tr>
-                <td><button class="button" @click=${this.createWallet}>Create Wallet - TON</button></td>
-                <td class="tonInfo">${unsafeHTML(this.createWalletResponse)}</td>
-            </tr>
-            <tr>
-                <td><button class="button" @click=${this.getBalance}>Get Balance</button></td>
-                <td class="tonInfo">${unsafeHTML(this.getBalanceResponse)}</td>
-            </tr>
-            <tr>
-                <td><button class="button" @click=${this.sendTON}>Send TON</button></td>
-                <td>${this.inputSendTONAddress()}<br />
-                <span class="tonInfo">${unsafeHTML(this.sendTONResponse)}</span></td>
-            </tr>
-            <tr>
-                <td><button class="button" @click=${this.testResSend}>Backend Get</button></td>
-                <td class="tonInfo">${unsafeHTML(this.resSendResponse)}</td>
-            </tr>
-        </table>
-        <p class="devInfo">Dev Wallet: ${devWalletAddress}</p>
+        <div class="card mb-3">
+            <div class="card-header">
+                <a href="#" class="btn btn-sm btn-primary" @click=${this.createWalletCF}>Create Wallet</a>
+            </div>
+            <div class="card-body">
+                <p class="card-text small">@difinity/identity.Ed25519KeyIdentity</p>
+                <p class="card-text text-muted small">${unsafeHTML(this.createWalletCFResponse)}</p>
+            </div>
+        </div>
+        <div class="card mb-3">
+            <div class="card-header">
+                <a href="#" class="btn btn-sm btn-primary" @click=${this.getBalance}>Get Balance</a>
+            </div>
+            <div class="card-body">
+                <p class="card-text small">HTTPS Outcalls <-> TON RPC</p>
+                <p class="card-text text-muted small">${unsafeHTML(this.getBalanceResponse)}</p>
+            </div>
+        </div>
+        <div class="card mb-3">
+            <div class="card-header">
+                <a href="#" class="btn btn-sm btn-primary" @click=${this.sendTON}>Send TON</a>
+            </div>
+            <div class="card-body">
+                <p class="card-text small">${this.inputSendTONAddress()}</p>
+                <p class="card-text text-muted small">${unsafeHTML(this.sendTONResponse)}</p>
+            </div>
+        </div>
+        <div class="card mb-3">
+            <div class="card-header">
+                <a href="#" class="btn btn-sm btn-primary" @click=${this.getTransactions}>Get Transactions</a>
+            </div>
+            <div class="card-body">
+                <p class="card-text small">HTTPS Outcall <-> TON RPC</p>
+                <p class="card-text text-muted small">${unsafeHTML(this.getTransactionsResponse)}</p>
+            </div>
+        </div>
+        <!--
+        <div class="card mb-3">
+            <div class="card-header">
+                <a href="#" class="btn btn-sm btn-primary" @click=${this.testResSend}>Call Backend</a>
+            </div>
+            <div class="card-body">
+                <p class="card-text small">Interact with Backend canister.</p>
+                <p class="card-text text-muted small">${unsafeHTML(this.resSendResponse)}</p>
+            </div>
+        </div>
+        <div class="card mb-3">
+            <div class="card-header">Create Wallet - TON</div>
+            <div class="card-body">
+                <p class="card-text">@ton/ton</p>
+                <a href="#" class="btn btn-light" @click=${this.createWallet}>Create Wallet</a>
+            </div>
+            <div class="card-footer text-muted small">${unsafeHTML(this.createWalletResponse)}</div>
+        </div>
+        -->
+        <p class="text-muted">Dev Wallet: ${devWalletAddress}</p>
         `;
     }
 }
