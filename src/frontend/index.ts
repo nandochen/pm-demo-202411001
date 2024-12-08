@@ -65,6 +65,9 @@ export class AzleApp extends LitElement {
     @property()
     globalStateResponse: string = JSON.stringify({});
 
+    @property()
+    getInfoResponse: string = '...';
+
 
     /**
      * ICP Chain Fusion - identity 
@@ -305,6 +308,41 @@ export class AzleApp extends LitElement {
         }
     }
 
+    async getInfo(): Promise<void> {
+        this.getInfoResponse = 'Loading...';
+        try { 
+            // https outcall 
+            const response = await fetch(`${this.canisterOrigin}/backend-get`);
+            const responseText = await response.text();
+            try {
+                this.getInfoResponse = `${responseText}`;
+            } catch (e) {
+                this.getInfoResponse = `Error: ${e}`;
+            }
+        } catch (e) {
+            this.getInfoResponse = `Error0: ${e}`;
+        }
+    }
+
+    async setInfo(): Promise<void> {
+        this.getInfoResponse = 'Loading...';
+        try { 
+            // https outcall 
+            const response = await fetch(`${this.canisterOrigin}/backend-set`, 
+                    { 
+                        method: 'POST',
+                    });
+            const responseText = await response.text();
+            try {
+                this.getInfoResponse = `${responseText}`;
+            } catch (e) {
+                this.getInfoResponse = `Error: ${e}`;
+            }
+        } catch (e) {
+            this.getInfoResponse = `Error0: ${e}`;
+        }
+    }
+
     async getHash(transfer: any, address: any): Promise<string> {
         const external = (await import("@ton/ton")).external;
         const beginCell = (await import("@ton/ton")).beginCell;
@@ -397,6 +435,16 @@ export class AzleApp extends LitElement {
             <div class="card-body">
                 <p class="card-text small">HTTPS Outcalls <-> TON RPC</p>
                 <p class="card-text text-muted small">${unsafeHTML(this.getTransactionsResponse)}</p>
+            </div>
+        </div>
+        <div class="card mb-3">
+            <div class="card-header">
+                <a href="#" class="btn btn-sm btn-primary" @click=${this.getInfo}>Get Info</a>
+                <a href="#" class="btn btn-sm btn-primary" @click=${this.setInfo}>Set Info</a>
+            </div>
+            <div class="card-body">
+                <p class="card-text small">HTTPS Outcalls <-> Backend</p>
+                <p class="card-text text-muted small">${unsafeHTML(this.getInfoResponse)}</p>
             </div>
         </div>
         <!--
