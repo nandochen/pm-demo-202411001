@@ -22,5 +22,6 @@
           },
           "frontend": {}
         }
-    }
+    },
+    "output_env_file": ".env"
 }

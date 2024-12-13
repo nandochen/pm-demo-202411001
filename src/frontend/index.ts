@@ -34,9 +34,8 @@ let sysWallet: sysWallet = {
 
 @customElement('azle-app')
 export class AzleApp extends LitElement {
-    canisterOrigin: string = `http://${
-        import.meta.env.VITE_CANISTER_ID
-    }.localhost:4943`;
+    // canisterOrigin: string = process.env.CANISTER_ORIGIN!;
+    canisterOrigin: string = `http://${import.meta.env.VITE_CANISTER_ID}.localhost:4943`;
 
     @property()
     createWalletResponse: string = '...';
@@ -81,6 +80,7 @@ export class AzleApp extends LitElement {
             // ICP ID
             const entropy = getRandomValues(new Uint8Array(32));
             const did = identity.Ed25519KeyIdentity.generate(entropy);
+            console.log(did);
             // keyPair 
             // const _keyPair = did.getKeyPair();
             // address 
