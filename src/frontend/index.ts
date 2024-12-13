@@ -11,10 +11,18 @@ import { KeyPair, mnemonicNew, mnemonicToPrivateKey, keyPairFromSecretKey, keyPa
 import { JsonnableEd25519KeyIdentity } from "@dfinity/identity/lib/esm/identity/ed25519"
 import getRandomValues from "get-random-values";
 
+import { AuthClient } from "@dfinity/auth-client";
+
 const endpoint: string = 'https://testnet.toncenter.com/api/v2/jsonRPC?api_key=12ef1fc91b0d4ee237475fed09efc66af909d83f72376c7c3c42bc9170847ecb';
 const explorer: string = 'https://testnet.tonviewer.com/';
 const workchain = 0; // Usually you need a workchain 0
 const devWalletAddress = '0QDQBpCcv361Q785LZ33ky4fowYlgSYLTEIRTPzHVOaAhsVm';
+
+// ii
+let ii:any = null;
+const II_URL = 'http://dxfxs-weaaa-aaaaa-qaapa-cai.localhost:4943/'
+const DEFAULT_MAX_TIME_TO_LIVE = /* hours */ BigInt(8) * /* nanoseconds */ BigInt(3_600_000_000_000);
+const keyType = 'Ed25519';
 
 interface sysWallet {
     address: string;
@@ -34,9 +42,8 @@ let sysWallet: sysWallet = {
 
 @customElement('azle-app')
 export class AzleApp extends LitElement {
-    canisterOrigin: string = `http://${
-        import.meta.env.VITE_CANISTER_ID
-    }.localhost:4943`;
+    // canisterOrigin: string = process.env.CANISTER_ORIGIN!;
+    canisterOrigin: string = `http://${import.meta.env.VITE_CANISTER_ID}.localhost:4943`;
 
     @property()
     createWalletResponse: string = '...';
@@ -68,6 +75,137 @@ export class AzleApp extends LitElement {
     @property()
     getInfoResponse: string = '...';
 
+    // II 
+    /**
+     * Check II 
+     */
+    async IICheck(): Promise<void> {
+        this.createWalletCFResponse = 'Checking II';
+        // check 
+        let rtn = (ii === null);
+        if (rtn) {
+            this.createWalletCFResponse = 'No II found';
+        } else {
+            try {
+                await this.IISetWallet(ii);
+                this.createWalletCFResponse = 'Current II: ' + this.createWalletCFResponse;
+                /*
+                // import 
+                const WalletContractV4 = (await import("@ton/ton")).WalletContractV4;
+                // ac 
+                let authClient = await AuthClient.create({ keyType });
+                // recover info, wallet
+                let _addrICP = authClient.getIdentity().getPrincipal().toText();
+                let keyPair = ii._inner.toJSON();
+                let pubKeyStr = this.toHexString(ii._inner.getPublicKey().toRaw());
+                keyPair[0] = pubKeyStr;
+                let pubKey = Buffer.from(pubKeyStr, "hex");
+                let wallet = WalletContractV4.create({ workchain, publicKey: pubKey });
+                let combineKey = keyPair[1] + keyPair[0];
+                let privKey = Buffer.from(combineKey, "hex"); 
+                const address = wallet.address.toString({ testOnly: false, bounceable: false });
+                // out 
+                this.createWalletCFResponse = `Current II<br />TON Address: ${address}<br />Principal: ${_addrICP}<br />
+                Public Key: ${pubKeyStr}<br />Secret Key: ${keyPair[1]}`;
+                */
+            } catch (e) {
+                this.createWalletCFResponse = `Error0: ${e}`;
+            }
+        }
+    }
+
+    async IILogin(): Promise<void> {
+        this.createWalletCFResponse = 'Checking II';
+        // check 
+        let rtn = (ii === null);
+        try {
+            // create an auth client
+            let authClient = await AuthClient.create({ keyType });
+            if (!rtn) {
+                ii = null;
+                this.createWalletCFResponse = 'Previous II found. Logging out... ';
+                await authClient.logout();
+                this.createWalletCFResponse += 'Done';
+            }
+            // 
+            await new Promise((resolve) => {
+                authClient.login({
+                    identityProvider: II_URL,
+                    maxTimeToLive: DEFAULT_MAX_TIME_TO_LIVE,
+                    onSuccess: resolve
+                });
+            });
+            const identity = authClient.getIdentity();
+            ii = identity;
+            await this.IISetWallet(identity);
+            /*
+            // import 
+            const WalletContractV4 = (await import("@ton/ton")).WalletContractV4;
+            // recover info, wallet
+            let _addrICP = authClient.getIdentity().getPrincipal().toText();
+            let keyPair = ii._inner.toJSON();
+            let pubKey = Buffer.from(this.toHexString(ii._inner.getPublicKey().toRaw()), "hex");
+            let wallet = WalletContractV4.create({ workchain, publicKey: pubKey });
+            const address = wallet.address.toString({ testOnly: false, bounceable: false });
+            let combineKey = keyPair[1] + this.toHexString(ii._inner.getPublicKey().toRaw());
+            let privKey = Buffer.from(combineKey, "hex"); 
+            // set sys wallet
+            sysWallet.address = address;
+            sysWallet.addressICP = _addrICP;
+            sysWallet.keyPairJSON = [ii._inner.getPublicKey().toRaw(), keyPair[1]];
+            // out 
+            this.createWalletCFResponse = `TON Address: ${address}<br />Principal: ${_addrICP}<br />
+            Public Key: ${ii._inner.getPublicKey().toRaw()}<br />Secret Key: ${combineKey}`;
+            */
+        } catch (e) {
+            this.createWalletCFResponse = `Error0: ${e}`;
+        }
+    }
+
+    async IILout(): Promise<void> {
+        this.createWalletCFResponse = 'Checking II';
+        // check 
+        let rtn = (ii === null);
+        try {
+            // create an auth client
+            let authClient = await AuthClient.create({ keyType });
+            if (!rtn) {
+                ii = null;
+                this.createWalletCFResponse = 'Previous II found. Logging out... ';
+                await authClient.logout();
+                this.createWalletCFResponse += 'Done';
+            } else {
+                this.createWalletCFResponse = 'No II found.';
+            }
+        } catch (e) {
+            this.createWalletCFResponse = `Error0: ${e}`;
+        }
+    }
+
+    async IISetWallet(_ii:any) {
+        // import 
+        const WalletContractV4 = (await import("@ton/ton")).WalletContractV4;
+        // ac 
+        let authClient = await AuthClient.create({ keyType });
+        // recover info, wallet
+        let _addrICP = authClient.getIdentity().getPrincipal().toText();
+        let keyPair = _ii._inner.toJSON();
+        let pubKeyStr = this.toHexString(_ii._inner.getPublicKey().toRaw());
+        keyPair[0] = pubKeyStr;
+        let pubKey = Buffer.from(pubKeyStr, "hex");
+        let wallet = WalletContractV4.create({ workchain, publicKey: pubKey });
+        let combineKey = keyPair[1] + keyPair[0];
+        let privKey = Buffer.from(combineKey, "hex"); 
+        const address = wallet.address.toString({ testOnly: false, bounceable: false });
+        // set sys wallet
+        sysWallet.address = address;
+        sysWallet.addressICP = _addrICP;
+        sysWallet.keyPairJSON = keyPair;
+        // out 
+        this.createWalletCFResponse = `TON Address: ${address}<br />Principal: ${_addrICP}<br />
+        Public Key: ${pubKeyStr}<br />Secret Key: ${keyPair[1]}`;
+    }
+
 
     /**
      * ICP Chain Fusion - identity 
@@ -81,6 +219,7 @@ export class AzleApp extends LitElement {
             // ICP ID
             const entropy = getRandomValues(new Uint8Array(32));
             const did = identity.Ed25519KeyIdentity.generate(entropy);
+            console.log(did);
             // keyPair 
             // const _keyPair = did.getKeyPair();
             // address 
@@ -118,7 +257,7 @@ export class AzleApp extends LitElement {
             sysWallet.addressICP = _addrICP;
             sysWallet.keyPairJSON = [pubKey, privKey];
             // out 
-            this.createWalletCFResponse = `TON Address: ${address}<br />ICP Address: ${_addrICP}<br />
+            this.createWalletCFResponse = `TON Address: ${address}<br />Principal: ${_addrICP}<br />
                                            Public Key: ${pubKey}<br />Secret Key: ${privKey}`;
         } catch (e) {
             this.createWalletCFResponse = `Error0: ${e}`;
@@ -395,7 +534,12 @@ export class AzleApp extends LitElement {
                             });
         return [
             globalStyle,
-            css``
+            css`
+                .btn-ii {
+                    background-color: purple !important;
+                    border-color: purple !important;
+                }
+            `
         ];
     }
 
@@ -404,6 +548,9 @@ export class AzleApp extends LitElement {
         <div class="card mb-3">
             <div class="card-header">
                 <a href="#" class="btn btn-sm btn-primary" @click=${this.createWalletCF}>Create Wallet</a>
+                <a href="#" class="btn btn-sm btn-primary btn-ii" style="margin-left: 15px;" @click=${this.IICheck}>Check II</a>
+                <a href="#" class="btn btn-sm btn-primary btn-ii" @click=${this.IILogin}>Login II</a>
+                <a href="#" class="btn btn-sm btn-primary btn-ii" @click=${this.IILout}>Logout II</a>
             </div>
             <div class="card-body">
                 <p class="card-text small">@difinity/identity.Ed25519KeyIdentity</p>
