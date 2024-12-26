@@ -1,27 +1,30 @@
 {
-    "canisters": {
-        "express": {
-            "type": "azle",
-            "main": "src/backend/dist/main.js",
-            "custom": {
-                "experimental": true,
-                "candid_gen": "http",
-                "assets": [["src/frontend/dist", "dist"]],
-                "build_assets": "npm run build"
-            }
-        },
-        "internet_identity": {
-          "type": "custom",
-          "candid": "https://github.com/dfinity/internet-identity/releases/download/release-2024-12-06/internet_identity.did",
-          "wasm": "https://github.com/dfinity/internet-identity/releases/download/release-2024-12-06/internet_identity_dev.wasm.gz",
-          "init_arg": "(opt record { captcha_config = opt record { max_unsolved_captchas= 50:nat64; captcha_trigger = variant {Static = variant {CaptchaDisabled}}}})",
-          "remote": {
-            "id": {
-              "ic": "rdmx6-jaaaa-aaaaa-aaadq-cai"
-            }
-          },
-          "frontend": {}
-        }
+  "canisters": {
+    "express": {
+      "type": "azle",
+      "main": "src/backend/src/main.ts",
+      "custom": {
+        "experimental": true,
+        "candid_gen": "http",
+        "assets": [
+          ["src/frontend/dist", "dist"]
+        ],
+        "build_assets": "npm run build",
+        "esm_externals": ["@nestjs/microservices", "@nestjs/websockets"]
+      }
     },
-    "output_env_file": ".env"
+    "internet_identity": {
+      "type": "custom",
+      "candid": "https://github.com/dfinity/internet-identity/releases/download/release-2024-12-06/internet_identity.did",
+      "wasm": "https://github.com/dfinity/internet-identity/releases/download/release-2024-12-06/internet_identity_dev.wasm.gz",
+      "init_arg": "(opt record { captcha_config = opt record { max_unsolved_captchas= 50:nat64; captcha_trigger = variant {Static = variant {CaptchaDisabled}}}})",
+      "remote": {
+        "id": {
+          "ic": "rdmx6-jaaaa-aaaaa-aaadq-cai"
+        }
+      },
+      "frontend": {}
+    }
+  },
+  "output_env_file": ".env"
 }

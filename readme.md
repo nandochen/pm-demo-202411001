@@ -1,21 +1,31 @@
-# DFX Deployment
+# DFX Canister Deployment
 
 1. Install packages
 
-npm i
+    ```shell
+    npm i
+    ```
 
-1. Create express canister (Optional, for new or cache-removed project)
+2. Create express canister (Optional, for new or cache-removed project)
 
-dfx canister create express
+    ```shell
+    dfx canister create express
+    ```
 
-1. Build frontend
+3. Build frontend
 
-npm run build
+    ```shell
+    npm run build
+    ```
 
-1. start dfx if not
+4. start dfx if not yet
 
-dfx start --background
+    ```shell
+    dfx start --background
+    ```
 
-1. Deploy/update canister
+5. Deploy/update canister
 
-dfx deploy
+    ```shell
+    dfx deploy
+    ```
