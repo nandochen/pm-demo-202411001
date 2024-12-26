@@ -2,7 +2,7 @@
     "canisters": {
         "express": {
             "type": "azle",
-            "main": "src/backend/index.ts",
+            "main": "src/backend/dist/main.js",
             "custom": {
                 "experimental": true,
                 "candid_gen": "http",

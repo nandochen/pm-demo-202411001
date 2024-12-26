@@ -1,5 +1,5 @@
 .azle
 .dfx
 .env
+dist
 node_modules
-src/frontend/dist
