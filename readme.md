@@ -24,9 +24,9 @@ dfx deploy
 Caused by: Failed create canister call.
 Caused by: Certificate is stale (over 240s). Is the computer's clock synchronized?"
 
-Restart dfx using "dfx stop && dfx start --background --clean"
+Restart dfx using "dfx stop && dfx start --clean"
 
-#### Q2.
+#### Q2. Response verification failed: Certification values not found
 
 Answer 2
 
