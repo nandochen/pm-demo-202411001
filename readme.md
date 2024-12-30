@@ -20,7 +20,9 @@ dfx deploy
     
 ## FAQ
 
-#### Q1. While opening frontend web page some might encounter error "Response verification failed: Certification values not found"
+#### Q1. While creating canister might encounter error "Caused by: Failed to create wallet
+Caused by: Failed create canister call.
+Caused by: Certificate is stale (over 240s). Is the computer's clock synchronized?"
 
 Restart dfx using "dfx stop && dfx start --background --clean"
 
