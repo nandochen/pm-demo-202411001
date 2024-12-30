@@ -28,5 +28,5 @@ Restart dfx using "dfx stop && dfx start --clean"
 
 #### Q2. Response verification failed: Certification values not found
 
-Answer 2
+Please update #23@src/frontend/index.ts with your local ii canister url
 
