@@ -6,3 +6,7 @@ dfx canister create express
 npm run build
 4) Deploy/update canister
 dfx deploy
+
+FAQ
+Q: While opening frontend web page some might encounter error "Response verification failed: Certification values not found"
+A: Restart dfx using "dfx stop && dfx start --background --clean"
