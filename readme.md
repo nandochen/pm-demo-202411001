@@ -7,14 +7,25 @@ A demo project for Peymate including frontend(node.js, lit), backend(node.js, ex
 
 Install dfx first. https://internetcomputer.org/docs/current/developer-docs/getting-started/install
 
+If the specified version is needed, here is the ref. [dfx specified version](https://internetcomputer.org/docs/current/developer-docs/developer-tools/cli-tools/dfxvm/) 
+
 ```bash
-1) Install packages
+1) Install dfx with version 0.23.0
+DFX_VERSION=0.23.0 sh -ci "$(curl -fsSL https://internetcomputer.org/install.sh)"
+
+2) Install packages
 npm i
-2) Create express canister (Optional, for new or cache-removed project)
+
+3) Start dfx service
+dfx start --clean --background
+
+4) Create express canister (Optional, for new or cache-removed project)
 dfx canister create express
-3) Build frontend
+
+5) Build frontend
 npm run build
-4) Deploy/update canister
+
+6) Deploy/update canister
 dfx deploy
 ```
 ## TON dev wallet 
