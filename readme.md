@@ -17,7 +17,10 @@ npm run build
 4) Deploy/update canister
 dfx deploy
 ```
-    
+## TON dev wallet 
+Install TON wallet. You can use TONKeeper.https://tonkeeper.com/
+Please update #19@src/frontend/index.ts with your wallet address.
+
 ## FAQ
 
 #### Q1. While creating canister might encounter error "Caused by: Failed to create wallet
