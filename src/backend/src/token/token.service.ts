@@ -1,4 +1,4 @@
-import { Body, Injectable, RawBody } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 
 export type TonBalanceResult = {
   ok: boolean;
@@ -22,9 +22,7 @@ export class TokenService {
     return 'Hello Ton!';
   }
 
-  async getBalance(
-    address: string
-  ): Promise<TonBalanceResult> {
+  async getBalance(address: string): Promise<TonBalanceResult> {
     const url = `${testnetEndPoint}/getAddressBalance?api_key=${apiKey}&address=${address}`;
 
     try {
@@ -40,9 +38,7 @@ export class TokenService {
     }
   }
 
-  async getTransactions(
-    address: string
-  ): Promise<TonTransactionsResult> {
+  async getTransactions(address: string): Promise<TonTransactionsResult> {
     const url = `${testnetEndPoint}/getTransactions?api_key=${apiKey}&address=${address}`;
 
     try {

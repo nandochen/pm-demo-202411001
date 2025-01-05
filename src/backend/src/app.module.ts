@@ -1,13 +1,13 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { TokenController } from './token/token.controller';
-import { TokenService } from './token/token.service';
+import { AuthModule } from './auth/auth.module';
+import { TokenModule } from './token/token.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot(),
-  ],
-  controllers: [TokenController],
-  providers: [TokenService],
+    AuthModule,
+    TokenModule,
+  ]
 })
 export class AppModule {}
