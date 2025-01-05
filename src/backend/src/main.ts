@@ -1,11 +1,18 @@
 import { NestFactory } from '@nestjs/core';
+import { NestExpressApplication, ExpressAdapter } from '@nestjs/platform-express';
+import * as express from 'express';
 import { AppModule } from './app.module';
-import { NestExpressApplication } from '@nestjs/platform-express';
 
-async function bootstrap() {
-  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+async function bootstrap(): Promise<void> {
+  // const server = express();
+  // const app = await NestFactory.create<NestExpressApplication>(AppModule, new ExpressAdapter(server));
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, { cors: true });
+  // app.setGlobalPrefix('api');
 
-  await app.listen(process.env.PORT ?? 3000);
+  // 設置靜態檔案目錄
+  // server.use(express.static('/dist'));
+
+  await app.listen(3000);
 }
 
 bootstrap();

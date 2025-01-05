@@ -1,7 +1,7 @@
 {
     "name": "peymate-on-icp",
     "private": true,
-    "version": "0.1.0",
+    "version": "0.2.0",
     "scripts": {
         "build": "cd src/frontend && VITE_CANISTER_ID=$(dfx canister id express) vite build",
         "pretest": "tsx test/pretest.ts",

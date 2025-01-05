@@ -1,50 +1,72 @@
-# Trouble Shooting
+# Troubleshooting
 
-## Installation and Deployment
+## Installed dfx version 0.24.3 and encountered problems in frontend
 
-1. Install the IC SDK and then logout
+In some OS we may run into trouble with version 0.24.3, it could be resolved by downgrading the dfx version to 0.23.0.
 
-    ```shell
-    sh -ci "$(curl -fsSL https://internetcomputer.org/install.sh)"
+The following are the steps:
 
-    logout
+1. Stop dfx if it's running
+
+    ```bash
+    dfx stop
     ```
 
-2. Login to confirm the SDK has been installed and start dfx replica in background
+    If it stucks, then run
 
-    ```shell
-    dfx --version
-
-    dfx start --background --clean
+    ```bash
+    dfx killall
     ```
 
-3. Install necessary packages for CentOS 9
+2. Uninstall dfx version 0.24.3
 
-    ```shell
-    sudo dnf install libunwind libunwind-dev
+    ```bash
+    dfxvm uninstall 0.24.3
     ```
 
-4. Install packages (before it use nvm to install nodejs v20)
+3. Install the specified dfx version 0.23.0
 
-    ```shell
-    npm i
+    ```bash
+    DFX_VERSION=0.23.0 sh -ci "$(curl -fsSL https://internetcomputer.org/install.sh)"
     ```
 
-5. Create express canister (Optional, for new or cache-removed project)
+4. Remove folders ".azle", ".dfx" in the project
 
-    ```shell
+5. Remove the package Azle in the project
+
+    ```bash
+    npm remove azle
+    ```
+
+6. Reinstall the package Azle
+
+    ```bash
+    npm install azle
+    ```
+
+7. Start dfx service
+
+    ```bash
+    dfx start --clean --background
+    ```
+
+    **The option "--clean" is important**
+
+8. Create the canister "express"
+
+    ```bash
     dfx canister create express
     ```
 
-6. Build frontend
+9. Build the frontend
 
-    ```shell
+    ```bash
     npm run build
     ```
 
-7. Deploy/update canister
+10. Deploy the canisters
 
-    ```shell
+    ```bash
     dfx deploy
     ```
 
